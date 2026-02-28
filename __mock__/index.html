@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head><meta charset="UTF-8"><title>收银台 - 麻辣烫收银系统</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; background: #0f1419; min-height: 100vh; color: #e7e9ea; }
+nav { background: #16181c; color: #fff; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2f3336; }
+nav .logo { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+nav .logo span { color: #ff6b6b; }
+nav .nav-links { display: flex; gap: 8px; }
+nav .nav-links a { color: #71767b; text-decoration: none; padding: 8px 16px; border-radius: 6px; transition: all 0.2s; }
+nav .nav-links a:hover, nav .nav-links a.active { color: #fff; background: #1e2730; }
+main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+.page-title { font-size: 24px; color: #e7e9ea; margin-bottom: 20px; font-weight: 600; }
+.dashboard { display: grid; grid-template-columns: 1fr 380px; gap: 24px; }
+.left-panel { display: flex; flex-direction: column; gap: 20px; }
+.card { background: #1e2730; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); overflow: hidden; }
+.card-header { padding: 16px 20px; border-bottom: 1px solid #2f3336; display: flex; align-items: center; justify-content: space-between; }
+.card-header h3 { font-size: 16px; color: #e7e9ea; font-weight: 600; }
+.card-header .badge { background: #1a3a2a; color: #2dd4bf; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+.card-body { padding: 20px; }
+.weight-display { text-align: center; padding: 30px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: #fff; }
+.weight-display .label { font-size: 14px; opacity: 0.9; margin-bottom: 8px; }
+.weight-display .value { font-size: 56px; font-weight: 700; }
+.weight-display .unit { font-size: 20px; opacity: 0.8; }
+.dish-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.dish-item { background: #2f3336; border: 2px solid transparent; border-radius: 10px; padding: 14px 10px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.dish-item:hover { border-color: #667eea; background: #38444d; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102,126,234,0.2); }
+.dish-item .icon { font-size: 28px; margin-bottom: 6px; }
+.dish-item .name { font-size: 13px; color: #e7e9ea; }
+.dish-item .price { font-size: 14px; color: #ff6b6b; font-weight: 600; margin-top: 4px; }
+.current-order { min-height: 300px; }
+.order-list { max-height: 320px; overflow-y: auto; }
+.order-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #2f3336; }
+.order-item:last-child { border-bottom: none; }
+.order-item .dish-info { display: flex; align-items: center; gap: 12px; }
+.order-item .dish-info .emoji { font-size: 24px; }
+.order-item .dish-info .detail .name { font-size: 14px; color: #e7e9ea; }
+.order-item .dish-info .detail .weight { font-size: 12px; color: #71767b; }
+.order-item .price { font-size: 15px; color: #ff6b6b; font-weight: 600; }
+.order-item .remove-btn { color: #71767b; cursor: pointer; padding: 4px; }
+.order-item .remove-btn:hover { color: #ff6b6b; }
+.right-panel { display: flex; flex-direction: column; gap: 20px; }
+.summary-card { text-align: center; }
+.summary-card .total-label { font-size: 14px; color: #71767b; margin-bottom: 8px; }
+.summary-card .total-amount { font-size: 42px; color: #e7e9ea; font-weight: 700; }
+.summary-card .total-amount .unit { font-size: 18px; color: #71767b; }
+.payment-methods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.pay-btn { padding: 16px 12px; border: 2px solid #2f3336; border-radius: 10px; background: #2f3336; cursor: pointer; transition: all 0.2s; text-align: center; }
+.pay-btn:hover { border-color: #667eea; background: #38444d; }
+.pay-btn .icon { font-size: 28px; margin-bottom: 6px; }
+.pay-btn .name { font-size: 14px; color: #e7e9ea; font-weight: 500; }
+.pay-btn .desc { font-size: 11px; color: #71767b; margin-top: 2px; }
+.pay-btn.weixin .icon { color: #2dd4bf; }
+.pay-btn.zhifubao .icon { color: #60a5fa; }
+.pay-btn.card .icon { color: #fb923c; }
+.pay-btn.face .icon { color: #a78bfa; }
+.quick-actions { display: flex; gap: 10px; }
+.action-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+.action-btn.primary { background: #667eea; color: #fff; }
+.action-btn.primary:hover { background: #5a67d8; }
+.action-btn.secondary { background: #2f3336; color: #e7e9ea; }
+.action-btn.secondary:hover { background: #38444d; }
+.action-btn.danger { background: #7f1d1d; color: #fca5a5; }
+.action-btn.danger:hover { background: #991b1b; }
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.stat-item { text-align: center; padding: 16px; background: #2f3336; border-radius: 10px; }
+.stat-item .label { font-size: 12px; color: #71767b; margin-bottom: 6px; }
+.stat-item .value { font-size: 22px; color: #e7e9ea; font-weight: 600; }
+.stat-item .value.green { color: #2dd4bf; }
+.stat-item .value.red { color: #ff6b6b; }
+.member-info { display: flex; align-items: center; gap: 14px; padding: 14px; background: #1a3a2a; border-radius: 10px; }
+.member-info .avatar { width: 48px; height: 48px; border-radius: 50%; background: #14532d; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+.member-info .info .name { font-size: 15px; color: #e7e9ea; font-weight: 500; }
+.member-info .info .balance { font-size: 13px; color: #2dd4bf; }
+.empty-state { text-align: center; padding: 60px 20px; color: #71767b; }
+.empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+.empty-state p { font-size: 14px; }
+footer { text-align: center; padding: 20px; color: #71767b; font-size: 13px; border-top: 1px solid #2f3336; margin-top: 20px; }
+</style>
+</head>
+<body>
+<nav>
+<div class="logo">🌶️ 麻辣烫<span>收银系统</span></div>
+<div class="nav-links">
+<a data-preview-href="#">首页</a>
+<a data-preview-href="#" class="active">收银台</a>
+<a data-preview-href="#">订单管理</a>
+<a data-preview-href="#">会员管理</a>
+<a data-preview-href="#">数据统计</a>
+<a data-preview-href="#">系统设置</a>
+</div>
+</nav>
+<main>
+<h1 class="page-title">收银台</h1>
+<div class="dashboard">
+<div class="left-panel">
+<div class="card">
+<div class="card-header">
+<h3>🍲 当前称重</h3>
+<span class="badge">电子秤已连接</span>
+</div>
+<div class="card-body">
+<div class="weight-display">
+<div class="label">当前重量</div>
+<div class="value">285<span class="unit">g</span></div>
+</div>
+</div>
+</div>
+<div class="card">
+<div class="card-header">
+<h3>🥬 菜品选择</h3>
+</div>
+<div class="card-body">
+<div class="dish-grid">
+<div class="dish-item"><div class="icon">🥬</div><div class="name">青菜</div><div class="price">¥12.8/斤</div></div>
+<div class="dish-item"><div class="icon">🥦</div><div class="name">西兰花</div><div class="price">¥15.0/斤</div></div>
+<div class="dish-item"><div class="icon">🍄</div><div class="name">蘑菇</div><div class="price">¥18.0/斤</div></div>
+<div class="dish-item"><div class="icon">🥕</div><div class="name">萝卜</div><div class="price">¥8.0/斤</div></div>
+<div class="dish-item"><div class="icon">🥩</div><div class="name">肥牛</div><div class="price">¥38.0/斤</div></div>
+<div class="dish-item"><div class="icon">🍖</div><div class="name">排骨</div><div class="price">¥42.0/斤</div></div>
+<div class="dish-item"><div class="icon">🦐</div><div class="name">虾仁</div><div class="price">¥45.0/斤</div></div>
+<div class="dish-item"><div class="icon">🥚</div><div class="name">鹌鹑蛋</div><div class="price">¥20.0/斤</div></div>
+<div class="dish-item"><div class="icon">🍜</div><div class="name">宽粉</div><div class="price">¥10.0/斤</div></div>
+<div class="dish-item"><div class="icon">🍤</div><div class="name">油炸</div><div class="price">¥22.0/斤</div></div>
+<div class="dish-item"><div class="icon">🌭</div><div class="name">火腿</div><div class="price">¥18.0/斤</div></div>
+<div class="dish-item"><div class="icon">🧈</div><div class="name">豆腐</div><div class="price">¥6.0/斤</div></div>
+<div class="dish-item"><div class="icon">🥚</div><div class="name">鸡蛋</div><div class="price">¥12.0/斤</div></div>
+<div class="dish-item"><div class="icon">🥬</div><div class="name">生菜</div><div class="price">¥10.0/斤</div></div>
+<div class="dish-item"><div class="icon">🥬</div><div class="name">娃娃菜</div><div class="price">¥12.0/斤</div></div>
+<div class="dish-item"><div class="icon">🍡</div><div class="name">鱼丸</div><div class="price">¥18.0/斤</div></div>
+</div>
+</div>
+</div>
+<div class="card">
+<div class="card-header">
+<h3>📊 今日数据</h3>
+</div>
+<div class="card-body">
+<div class="stats-row">
+<div class="stat-item"><div class="label">今日订单</div><div class="value">86</div></div>
+<div class="stat-item"><div class="label">销售额</div><div class="value green">¥2,480</div></div>
+<div class="stat-item"><div class="label">客单价</div><div class="value">¥28.8</div></div>
+</div>
+</div>
+</div>
+</div>
+<div class="right-panel">
+<div class="card current-order">
+<div class="card-header">
+<h3>🧾 当前订单</h3>
+<span style="color:#718096;font-size:13px;">NO.20240115028</span>
+</div>
+<div class="card-body">
+<div class="member-info">
+<div class="avatar">👤</div>
+<div class="info"><div class="name">张建国</div><div class="balance">余额：¥156.00</div></div>
+</div>
+<div class="order-list">
+<div class="order-item">
+<div class="dish-info"><span class="emoji">🥬</span><div class="detail"><div class="name">青菜</div><div class="weight">85g × ¥12.8</div></div></div>
+<div class="price">¥1.09</div>
+<span class="remove-btn">✕</span>
+</div>
+<div class="order-item">
+<div class="dish-info"><span class="emoji">🥩</span><div class="detail"><div class="name">肥牛</div><div class="weight">120g × ¥38.0</div></div></div>
+<div class="price">¥4.56</div>
+<span class="remove-btn">✕</span>
+</div>
+<div class="order-item">
+<div class="dish-info"><span class="emoji">🍄</span><div class="detail"><div class="name">蘑菇</div><div class="weight">65g × ¥18.0</div></div></div>
+<div class="price">¥1.17</div>
+<span class="remove-btn">✕</span></div>
+<div class="order-item">
+<div class="dish-info"><span class="emoji">🍜</span><div class="detail"><div class="name">宽粉</div><div class="weight">50g × ¥10.0</div></div></div>
+<div class="price">¥0.50</div>
+<span class="remove-btn">✕</span></div>
+</div>
+</div>
+</div>
+<div class="card">
+<div class="card-body summary-card">
+<div class="total-label">订单合计</div>
+<div class="total-amount">¥<span>7.32</span></div>
+</div>
+</div>
+<div class="card">
+<div class="card-header"><h3>💳 支付方式</h3></div>
+<div class="card-body">
+<div class="payment-methods">
+<div class="pay-btn weixin"><div class="icon">💚</div><div class="name">微信支付</div><div class="desc">扫码付</div></div>
+<div class="pay-btn zhifubao"><div class="icon">💙</div><div class="name">支付宝</div><div class="desc">扫码付</div></div>
+<div class="pay-btn card"><div class="icon">💳</div><div class="name">刷卡</div><div class="desc">一卡通</div></div>
+<div class="pay-btn face"><div class="icon">😊</div><div class="name">人脸识别</div><div class="description">刷脸付</div></div>
+</div>
+</div>
+</div>
+<div class="card">
+<div class="card-body">
+<div class="quick-actions">
+<button type="button" class="action-btn secondary">挂单</button>
+<button type="button" class="action-btn secondary">取单</button>
+<button type="button" class="action-btn danger">整单取消</button>
+<button type="button" class="action-btn primary">确认收款</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer>麻辣烫收银系统 v1.0 | 政府机关食堂专用版</footer>
+</body>
+</html>

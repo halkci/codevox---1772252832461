@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: malatang-pos-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: malatang2024
+      MYSQL_DATABASE: malatang_pos
+      MYSQL_USER: malatang
+      MYSQL_PASSWORD: malatang2024
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: malatang-pos-backend
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=malatang
+      - DB_PASSWORD=malatang2024
+      - DB_DATABASE=malatang_pos
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: malatang-pos-frontend
+    ports:
+      - "5174:5173"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
