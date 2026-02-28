@@ -45,6 +45,10 @@ function App() {
   const [orderNo, setOrderNo] = useState('')
   const [loginError, setLoginError] = useState('')
   const [loginForm, setLoginForm] = useState({ username: '', password: '' })
+  const [showWeightModal, setShowWeightModal] = useState(false)
+  const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
+  const [manualWeight, setManualWeight] = useState('')
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
 
   const total = orderItems.reduce((sum, item) => sum + item.subtotal, 0)
 
@@ -119,6 +123,23 @@ function App() {
     setOrderItems([])
   }
 
+  const openWeightModal = (dish: Dish) => {
+    setSelectedDish(dish)
+    setManualWeight('')
+    setShowWeightModal(true)
+  }
+
+  const confirmAddDish = () => {
+    if (!selectedDish) return
+    const weight = manualWeight ? parseInt(manualWeight) : Math.floor(Math.random() * 100) + 50
+    if (weight <= 0) return
+    const subtotal = (selectedDish.price * weight / 100)
+    setOrderItems([...orderItems, { dish: selectedDish, weight, subtotal }])
+    setCurrentWeight(prev => prev + weight)
+    setShowWeightModal(false)
+    setSelectedDish(null)
+  }
+
   const addToOrder = (dish: Dish) => {
     const weight = Math.floor(Math.random() * 100) + 50
     const subtotal = (dish.price * weight / 100)
@@ -176,6 +197,16 @@ function App() {
       fetchUsers()
     } catch (e) {
       alert('操作失败')
+    }
+  }
+
+  const getPaymentName = (method: string) => {
+    switch (method) {
+      case 'wechat': return '微信支付'
+      case 'alipay': return '支付宝'
+      case 'card': return '刷卡'
+      case 'face': return '人脸识别'
+      default: return method
     }
   }
 
@@ -249,7 +280,7 @@ function App() {
                 <div className="card-body">
                   <div className="dish-grid">
                     {dishes.map(dish => (
-                      <div key={dish.id} className="dish-item" onClick={() => addToOrder(dish)}>
+                      <div key={dish.id} className="dish-item" onClick={() => openWeightModal(dish)}>
                         <div className="icon">{dish.icon}</div>
                         <div className="name">{dish.name}</div>
                         <div className="price">¥{dish.price}/斤</div>
@@ -353,16 +384,19 @@ function App() {
               ) : (
                 <table className="order-table">
                   <thead>
-                    <tr><th>订单号</th><th>金额</th><th>支付方式</th><th>状态</th><th>时间</th></tr>
+                    <tr><th>订单号</th><th>金额</th><th>支付方式</th><th>状态</th><th>时间</th><th>操作</th></tr>
                   </thead>
                   <tbody>
                     {orders.map(order => (
                       <tr key={order.id}>
                         <td>{order.orderNo}</td>
                         <td className="price-cell">¥{Number(order.total).toFixed(2)}</td>
-                        <td>{order.paymentMethod === 'wechat' ? '微信支付' : order.paymentMethod === 'alipay' ? '支付宝' : order.paymentMethod === 'card' ? '刷卡' : '人脸识别'}</td>
+                        <td>{getPaymentName(order.paymentMethod)}</td>
                         <td><span className={`status-badge ${order.status}`}>{order.status === 'paid' ? '已支付' : order.status}</span></td>
                         <td>{new Date(order.createdAt).toLocaleString('zh-CN')}</td>
+                        <td>
+                          <button className="action-btn secondary" style={{padding: '4px 10px', fontSize: '12px'}} onClick={() => setSelectedOrder(order)}>查看</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -404,6 +438,32 @@ function App() {
         </main>
       )}
 
+      {showWeightModal && (
+        <div className="modal-overlay" onClick={() => setShowWeightModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>录入重量</h3>
+            <div className="weight-dish-info">
+              <span className="icon">{selectedDish?.icon}</span>
+              <span className="name">{selectedDish?.name}</span>
+              <span className="price">¥{selectedDish?.price}/斤</span>
+            </div>
+            <input
+              type="number"
+              className="weight-input"
+              placeholder="输入重量(克)"
+              value={manualWeight}
+              onChange={e => setManualWeight(e.target.value)}
+              autoFocus
+            />
+            <div className="weight-hint">不填则随机生成</div>
+            <div className="modal-actions">
+              <button className="action-btn secondary" onClick={() => setShowWeightModal(false)}>取消</button>
+              <button className="action-btn primary" onClick={confirmAddDish}>确认添加</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showPayModal && (
         <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
@@ -418,6 +478,43 @@ function App() {
             <div className="modal-actions">
               <button className="action-btn secondary" onClick={() => setShowPayModal(false)}>取消</button>
               <button className="action-btn primary" onClick={handlePayment}>确认支付</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedOrder && (
+        <div className="modal-overlay" onClick={() => setSelectedOrder(null)}>
+          <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+            <h3>订单详情</h3>
+            <div className="order-detail-header">
+              <div className="detail-row"><span className="label">订单号：</span><span>{selectedOrder.orderNo}</span></div>
+              <div className="detail-row"><span className="label">下单时间：</span><span>{new Date(selectedOrder.createdAt).toLocaleString('zh-CN')}</span></div>
+              <div className="detail-row"><span className="label">支付方式：</span><span>{getPaymentName(selectedOrder.paymentMethod)}</span></div>
+              <div className="detail-row"><span className="label">订单状态：</span><span className={`status-badge ${selectedOrder.status}`}>{selectedOrder.status === 'paid' ? '已支付' : selectedOrder.status}</span></div>
+            </div>
+            <div className="order-detail-items">
+              <h4>菜品明细</h4>
+              <table className="detail-table">
+                <thead><tr><th>菜品</th><th>重量</th><th>单价</th><th>小计</th></tr></thead>
+                <tbody>
+                  {selectedOrder.items && selectedOrder.items.map((item: any, idx: number) => (
+                    <tr key={idx}>
+                      <td><span className="item-icon">{item.dish?.icon || '🍽️'}</span> {item.dish?.name || '未知'}</td>
+                      <td>{item.weight}g</td>
+                      <td>¥{item.dish?.price || 0}/斤</td>
+                      <td className="price-cell">¥{item.subtotal?.toFixed(2) || '0.00'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="order-detail-total">
+              <span>合计：</span>
+              <span className="total-price">¥{Number(selectedOrder.total).toFixed(2)}</span>
+            </div>
+            <div className="modal-actions">
+              <button className="action-btn primary" onClick={() => setSelectedOrder(null)}>关闭</button>
             </div>
           </div>
         </div>
